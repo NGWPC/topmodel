@@ -753,10 +753,14 @@ extern void calc_time_delay_histogram(
     int j, ir;
     int tmp_num_ords = *num_time_delay_histo_ords;
 
-    // Determine how many ROUTING ORDINATES from farthest channel segment (1-based arrays)
+    // casting tch[num_channels] to int truncates tch[num_channels]
+    // (e.g., 7.9 becomes 7)
+    // Determine how many ROUTING ORDINATES
+    // computed, essentially, by the `dist_from_outlet` of the FARTHEST channel segment
     (*num_time_delay_histo_ords) = (int) tch[num_channels];
 
-    // Round up if tch[num_channels] is not an integer
+    // this is here to round up. Since casting tch as int effectively rounds down,
+    // we add a value of 1 effectively rounding up.
     if ((double)(*num_time_delay_histo_ords) < tch[num_channels]) {
         (*num_time_delay_histo_ords)++;
     }
@@ -823,15 +827,17 @@ extern void calc_time_delay_histogram(
     sumar += (*time_delay_histogram)[1];
 
     if (sumar < 0.99999 || sumar > 1.00001) {
-        Log(SEVERE, "Histogram oridnates do not sum to 1.\n");
+        Log(SEVERE, "Histogram oridnates do not sum to 1.");
         Log(SEVERE,
             "Check that the correct number of values for cum_dist_area_with_dist and "
-            "dist_from_outlet are provided.\n");
+            "dist_from_outlet are provided.");
         Log(SEVERE,
             "The number of values for each variable should be equal to the number of channels "
-            "(i.e., num_channels).\n\n");
-        Log(SEVERE, "Exiting Topmodel\n");
-        exit(-1); // FIXME: ideally return error code, but keeping existing behavior
+            "(i.e., num_channels).");
+        Log(SEVERE, "Exiting Topmodel");
+	exit(-1); // FIXME this fuction should probably return an error code
+                  // and the error be handled elsewhere, not just an exit here...
+
     }
 
     return;
