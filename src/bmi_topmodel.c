@@ -652,6 +652,9 @@ static int Get_var_type(Bmi *self, const char *name, char *type) {
     } else if (strcmp(name, "serialization_free") == 0) {
         strncpy(type, "int", BMI_MAX_TYPE_NAME);
         return BMI_SUCCESS;
+    } else if (strcmp(name, "reset_time") == 0) {
+        strncpy(type, "double", BMI_MAX_TYPE_NAME);
+        return BMI_SUCCESS;
     }
     // If we get here, it means the variable name wasn't recognized
     type[0] = '\0';
@@ -776,7 +779,10 @@ static int Get_var_nbytes(Bmi *self, const char *name, int *nbytes) {
     }
     // special cases for save state
     if (item_count < 1) {
-        if (strcmp(name, "serialization_create") == 0 || strcmp(name, "serialization_size") == 0 || strcmp(name, "serialization_free") == 0) {
+        if (strcmp(name, "serialization_create") == 0
+            || strcmp(name, "serialization_size") == 0
+            || strcmp(name, "serialization_free") == 0
+            || strcmp(name, "reset_time") == 0) {
             item_count = 1;
         } else if (strcmp(name, "serialization_state") == 0) {
             topmodel_model* model = (topmodel_model*)self->data;
@@ -1063,6 +1069,10 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         } else {
             return BMI_FAILURE;
         }
+    } else if (strcmp(name, "reset_time") == 0) {
+        topmodel_model* model = (topmodel_model *)self->data;
+        // current_time_step is mainly used for indexing into config data, so should be safe to reset and nothing else
+        model->current_time_step = 0;
     }
 
     if (self->get_value_ptr(self, name, &dest) == BMI_FAILURE)
