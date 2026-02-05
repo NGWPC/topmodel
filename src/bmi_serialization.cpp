@@ -99,15 +99,17 @@ const int serialize_topmodel(Bmi* bmi) {
         free(model->serialized);
     }
     // set size and allocate memory
-    model->serialized_length = stream.size();
-    model->serialized = (char*)malloc(sizeof(char) * model->serialized_length);
+    uint64_t serialized_size = stream.size();
+    model->serialized_length = serialized_size + sizeof(uint64_t);
+    model->serialized = (char*)malloc(model->serialized_length);
     // make sure memory could be allocated
     if (model->serialized == NULL) {
         model->serialized_length = 0;
         return BMI_FAILURE;
     }
     // copy stream data to new allocation
-    memcpy(model->serialized, stream.data(), model->serialized_length);
+    memcpy(model->serialized, &serialized_size, sizeof(uint64_t));
+    memcpy(model->serialized + sizeof(uint64_t), stream.data(), model->serialized_length);
     return BMI_SUCCESS;
 }
 
@@ -118,9 +120,13 @@ const int serialize_topmodel(Bmi* bmi) {
   * @param buffer Start of data that wil be read as previously serialized state
   * @return int signifiying whether the serialization process completed successfully.
   */
-const int deserialize_topmodel(Bmi* bmi, const char* buffer) {
+const int deserialize_topmodel(Bmi* bmi, char* buffer) {
     TopmodelSerializer serializer(bmi);
-    std::istringstream stream(buffer);
+    // copy size of data out of header
+    uint64_t size;
+    memcpy(&size, buffer, sizeof(uint64_t));
+    // create stream from data after header
+    membuf stream(buffer + sizeof(uint64_t), size);
     boost::archive::binary_iarchive archive(stream);
     try {
         archive >> serializer;
