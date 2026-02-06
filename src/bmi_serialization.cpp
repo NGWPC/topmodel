@@ -109,7 +109,7 @@ const int serialize_topmodel(Bmi* bmi) {
     }
     // copy stream data to new allocation
     memcpy(model->serialized, &serialized_size, sizeof(uint64_t));
-    memcpy(model->serialized + sizeof(uint64_t), stream.data(), model->serialized_length);
+    memcpy(model->serialized + sizeof(uint64_t), stream.data(), serialized_size);
     return BMI_SUCCESS;
 }
 
