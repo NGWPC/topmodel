@@ -1073,6 +1073,7 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         topmodel_model* model = (topmodel_model *)self->data;
         // current_time_step is mainly used for indexing into config data, so should be safe to reset and nothing else
         model->current_time_step = 0;
+        return BMI_SUCCESS;
     }
 
     if (self->get_value_ptr(self, name, &dest) == BMI_FAILURE)
