@@ -67,12 +67,21 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
     ar & boost::serialization::make_array(
         model->deficit_local, num_topodex_values
     );
+    // stand-alone model should always be 2 with nstep == 1
     ar & boost::serialization::make_array(
         model->contrib_area, model->nstep + 1
     );
-    ar & boost::serialization::make_array(
-        model->Q, model->num_delay + model->num_time_delay_histo_ords + 1
-    );
+    // the size of Q can be changed in BMI's set_value
+    int num_Q, num_Q_orig;
+    num_Q = num_Q_orig = model->num_delay + model->num_time_delay_histo_ords + 1;
+    ar & num_Q;
+    if (Archive::is_loading::value && num_Q != num_Q_orig) {
+        // if loading and size has changed, reallocate Q for values coming in
+        if (model->Q != NULL)
+            free(model->Q);
+        model->Q = malloc(num_Q * sizeof(double));
+    }
+    ar & boost::serialization::make_array(model->Q, num_Q);
 }
 
 
