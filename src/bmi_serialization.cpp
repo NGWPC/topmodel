@@ -79,7 +79,7 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
         // if loading and size has changed, reallocate Q for values coming in
         if (model->Q != NULL)
             free(model->Q);
-        model->Q = malloc(num_Q * sizeof(double));
+        model->Q = static_cast<double *>(malloc(num_Q * sizeof(double)));
     }
     ar & boost::serialization::make_array(model->Q, num_Q);
 }
