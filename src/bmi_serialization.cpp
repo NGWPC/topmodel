@@ -32,6 +32,11 @@ class TopmodelSerializer {
 template<class Archive>
 void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
     topmodel_model* model = this->model;
+    if (model->stand_alone == TRUE) {
+        auto error = "Topmodel serialization is not currently implemented when running stand alone.";
+        Log(SEVERE, error);
+        throw std::runtime_error(error);
+    }
     ar & model->current_time_step;
 
     // data summed between runs
@@ -63,10 +68,10 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
         model->deficit_local, num_topodex_values
     );
     ar & boost::serialization::make_array(
-        model->contrib_area, num_topodex_values
+        model->contrib_area, model->nstep + 1
     );
     ar & boost::serialization::make_array(
-        model->Q, model->num_time_delay_histo_ords + 1
+        model->Q, model->num_delay + model->num_time_delay_histo_ords + 1
     );
 }
 
