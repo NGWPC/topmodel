@@ -33,6 +33,7 @@ template<class Archive>
 void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
     topmodel_model* model = this->model;
     if (model->stand_alone == TRUE) {
+        // the number of timesteps makes hindcasting nigh imposible when stand alone
         auto error = "Topmodel serialization is not currently implemented when running stand alone.";
         Log(SEVERE, error);
         throw std::runtime_error(error);
@@ -67,20 +68,36 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
     ar & boost::serialization::make_array(
         model->deficit_local, num_topodex_values
     );
-    // stand-alone model should always be 2 with nstep == 1
+
+    // nsteps will always be 1 for non-stand-alone models
     ar & boost::serialization::make_array(
         model->contrib_area, model->nstep + 1
     );
-    // the size of Q can be changed in BMI's set_value
-    int num_Q, num_Q_orig;
-    num_Q = num_Q_orig = model->num_delay + model->num_time_delay_histo_ords + 1;
-    ar & num_Q;
-    if (Archive::is_loading::value && num_Q != num_Q_orig) {
-        // if loading and size has changed, reallocate Q for values coming in
-        if (model->Q != NULL)
-            free(model->Q);
-        model->Q = static_cast<double *>(malloc(num_Q * sizeof(double)));
+
+    // copy the current sizes to detect changes, then archive the model value
+    int num_time_delay_histo_ords = model->num_time_delay_histo_ords;
+    ar & model->num_time_delay_histo_ords;
+    int num_delay = model->num_delay;
+    ar & model->num_delay;
+    size_t num_Q = model->num_delay + model->num_time_delay_histo_ords + 1;
+    if (Archive::is_loading::value) {
+        // if loading and array size has changed, reallocate
+        if (num_time_delay_histo_ords != model->num_time_delay_histo_ords) {
+            if (model->time_delay_histogram != NULL)
+                free(model->time_delay_histogram);
+            model->time_delay_histogram = (double *)malloc(
+                (model->num_time_delay_histo_ords + 1) + sizeof(double)
+            );
+        }
+        if (num_delay != model->num_delay || num_time_delay_histo_ords != model->num_time_delay_histo_ords) {
+            if (model->Q != NULL)
+                free(model->Q);
+            model->Q = (double *)malloc(num_Q * sizeof(double));
+        }
     }
+    ar & boost::serialization::make_array(
+        model->time_delay_histogram, model->num_time_delay_histo_ords + 1
+    );
     ar & boost::serialization::make_array(model->Q, num_Q);
 }
 

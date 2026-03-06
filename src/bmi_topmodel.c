@@ -481,8 +481,6 @@ static int Update(Bmi *self) {
         topmodel->num_time_delay_histo_ords,
         topmodel->Q,
         topmodel->time_delay_histogram,
-        topmodel->subcat,
-        &topmodel->bal,
         &topmodel->sbar,
         topmodel->num_delay,
         topmodel->current_time_step,
@@ -1179,8 +1177,8 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         convert_dist_to_histords(
             topmodel->dist_from_outlet,
             topmodel->num_channels,
-            &topmodel->chv,
-            &topmodel->rv,
+            topmodel->chv,
+            topmodel->rv,
             topmodel->dt,
             tch
         );
@@ -1199,10 +1197,10 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         // Reinitialise discharge array
         init_discharge_array(
             topmodel->stand_alone,
-            &topmodel->num_delay,
-            &topmodel->Q0,
+            topmodel->num_delay,
+            topmodel->Q0,
             topmodel->area,
-            &topmodel->num_time_delay_histo_ords,
+            topmodel->num_time_delay_histo_ords,
             &topmodel->time_delay_histogram,
             &topmodel->Q
         );
@@ -1222,10 +1220,10 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         init_water_balance(
             topmodel->num_topodex_values,
             topmodel->dt,
-            &topmodel->sr0,
-            &topmodel->szm,
-            &topmodel->Q0,
-            &topmodel->t0,
+            topmodel->sr0,
+            topmodel->szm,
+            topmodel->Q0,
+            topmodel->t0,
             topmodel->tl,
             &topmodel->stor_unsat_zone,
             &topmodel->szq,

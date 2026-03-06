@@ -26,28 +26,28 @@
 
 /*** Function/subroutine prototypes ***/
 extern void convert_dist_to_histords(const double * const dist_from_outlet, const int num_channels,
-					const double * const chv, const double * const rv, const double dt, double* const tch);
+					const double chv, const double rv, const double dt, double* const tch);
 
 extern void calc_time_delay_histogram(int num_channels, double area,
-		double* tch, double *cum_dist_area_with_dist,
+		const double *tch, const double *cum_dist_area_with_dist,
 		int *num_time_delay_histo_ords, int *num_delay,	double **time_delay_histogram);
 
 extern void init_water_balance(
-				int num_topodex_values, double dt, double *sr0, 
-				double *szm, double *Q0, double *t0, double tl,
+				int num_topodex_values, double dt, double sr0, 
+				double szm, double Q0, double t0, double tl,
 				double **stor_unsat_zone, double *szq,
 				double **deficit_local, double **deficit_root_zone, 
 				double *sbar, double *bal);
 
-extern void init_discharge_array(int stand_alone, int *num_delay, double *Q0, double area, 
-			int *num_time_delay_histo_ords, double **time_delay_histogram,
+extern void init_discharge_array(int stand_alone, int num_delay, double Q0, double area, 
+			int num_time_delay_histo_ords, double **time_delay_histogram,
                         double **Q);
 
 extern int init(FILE *in_param_fptr, FILE *output_fptr, char *subcat, int stand_alone,
 	      int num_channels, int num_topodex_values, int yes_print_output,
 	      double area, double **time_delay_histogram,
 	      double *cum_dist_area_with_dist, double dt, 
-        double tl, double *dist_from_outlet, 
+        double tl, const double *dist_from_outlet, 
 	      int *num_time_delay_histo_ords,int *num_delay,
 	      double *szm, double *t0, double *chv, double *rv, double *td, double *srmax, 
         double *Q0,double *sr0, int *infex, double *xk0, double *hf, double *dth,
@@ -61,11 +61,11 @@ extern int inputs(FILE *input_fptr, int *nstep, double *dt, double **rain,
 extern void topmod(FILE *output_fptr, int nstep, int num_topodex_values,
                 int yes_print_output,int infex, double dt, double szm,
 	        double *stor_unsat_zone, double *deficit_root_zone,
-                double *deficit_local, double *pe, double *rain,double xk0,double hf, 
-                double *dist_area_lnaotb, double tl, double *lnaotb, double td,
+                double *deficit_local, const double *pe, const double *rain,double xk0,double hf, 
+                const double *dist_area_lnaotb, double tl, const double *lnaotb, double td,
                 double srmax, double *contrib_area, double szq, double *Qout, 
                 int num_time_delay_histo_ords,double *Q,
-                double *time_delay_histogram,char *subcat,double *bal,
+                const double *time_delay_histogram,
                 double *sbar,int num_delay, int current_time_step, int stand_alone,
                 double *sump, double *sumae, double *sumq, double *sumrz, double *sumuz,
                 double *quz, double *qb, double *qof, double *p, double *ep);
