@@ -86,7 +86,7 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
             if (model->time_delay_histogram != NULL)
                 free(model->time_delay_histogram);
             model->time_delay_histogram = (double *)malloc(
-                (model->num_time_delay_histo_ords + 1) + sizeof(double)
+                (model->num_time_delay_histo_ords + 1) * sizeof(double)
             );
         }
         if (num_delay != model->num_delay || num_time_delay_histo_ords != model->num_time_delay_histo_ords) {
