@@ -412,6 +412,13 @@ static int Initialize(Bmi *self, const char *cfg_file) {
     topmodel_model *topmodel;
     topmodel = (topmodel_model *)self->data;
 
+    // Initialize the Error, Warning and Trapping System
+#ifdef EWTS_HAVE_NGEN_BRIDGE    
+    EwtsInit(EWTS_ID_TOPMODEL, true);
+#else
+    EwtsInit(EWTS_ID_TOPMODEL, false);
+#endif    
+    
     // Read and setup data from file
     int ret = init_config(cfg_file, topmodel);
     if (ret != BMI_SUCCESS)
