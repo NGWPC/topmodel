@@ -810,8 +810,8 @@ static int Get_value_ptr(Bmi *self, const char *name, void **dest) {
     if (strcmp(name, "atmosphere_water__liquid_equivalent_precipitation_rate_out") == 0) {
         topmodel_model *topmodel;
         topmodel = (topmodel_model *)self->data;
-        *dest    = (void *)&topmodel->p;
-        //*dest = (void*)&topmodel->rain[1]; Note: these are the same ==, either would work
+        //*dest    = (void *)&topmodel->p;//Note: these are the same ==, either would work
+        *dest = (void*)&topmodel->rain[1]; 
         return BMI_SUCCESS;
         // ep
     }
