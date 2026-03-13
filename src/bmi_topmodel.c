@@ -481,8 +481,6 @@ static int Update(Bmi *self) {
         topmodel->num_time_delay_histo_ords,
         topmodel->Q,
         topmodel->time_delay_histogram,
-        topmodel->subcat,
-        &topmodel->bal,
         &topmodel->sbar,
         topmodel->num_delay,
         topmodel->current_time_step,
@@ -652,6 +650,9 @@ static int Get_var_type(Bmi *self, const char *name, char *type) {
     } else if (strcmp(name, "serialization_free") == 0) {
         strncpy(type, "int", BMI_MAX_TYPE_NAME);
         return BMI_SUCCESS;
+    } else if (strcmp(name, "reset_time") == 0) {
+        strncpy(type, "double", BMI_MAX_TYPE_NAME);
+        return BMI_SUCCESS;
     }
     // If we get here, it means the variable name wasn't recognized
     type[0] = '\0';
@@ -776,7 +777,10 @@ static int Get_var_nbytes(Bmi *self, const char *name, int *nbytes) {
     }
     // special cases for save state
     if (item_count < 1) {
-        if (strcmp(name, "serialization_create") == 0 || strcmp(name, "serialization_size") == 0 || strcmp(name, "serialization_free") == 0) {
+        if (strcmp(name, "serialization_create") == 0
+            || strcmp(name, "serialization_size") == 0
+            || strcmp(name, "serialization_free") == 0
+            || strcmp(name, "reset_time") == 0) {
             item_count = 1;
         } else if (strcmp(name, "serialization_state") == 0) {
             topmodel_model* model = (topmodel_model*)self->data;
@@ -1063,6 +1067,11 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         } else {
             return BMI_FAILURE;
         }
+    } else if (strcmp(name, "reset_time") == 0) {
+        topmodel_model* model = (topmodel_model *)self->data;
+        // current_time_step is mainly used for indexing into config data, so should be safe to reset and nothing else
+        model->current_time_step = 0;
+        return BMI_SUCCESS;
     }
 
     if (self->get_value_ptr(self, name, &dest) == BMI_FAILURE)
@@ -1168,8 +1177,8 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         convert_dist_to_histords(
             topmodel->dist_from_outlet,
             topmodel->num_channels,
-            &topmodel->chv,
-            &topmodel->rv,
+            topmodel->chv,
+            topmodel->rv,
             topmodel->dt,
             tch
         );
@@ -1188,10 +1197,10 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         // Reinitialise discharge array
         init_discharge_array(
             topmodel->stand_alone,
-            &topmodel->num_delay,
-            &topmodel->Q0,
+            topmodel->num_delay,
+            topmodel->Q0,
             topmodel->area,
-            &topmodel->num_time_delay_histo_ords,
+            topmodel->num_time_delay_histo_ords,
             &topmodel->time_delay_histogram,
             &topmodel->Q
         );
@@ -1211,10 +1220,10 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         init_water_balance(
             topmodel->num_topodex_values,
             topmodel->dt,
-            &topmodel->sr0,
-            &topmodel->szm,
-            &topmodel->Q0,
-            &topmodel->t0,
+            topmodel->sr0,
+            topmodel->szm,
+            topmodel->Q0,
+            topmodel->t0,
             topmodel->tl,
             &topmodel->stor_unsat_zone,
             &topmodel->szq,
