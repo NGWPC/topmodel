@@ -16,7 +16,6 @@ int init_config(const char* config_file, topmodel_model* model);
 
 int read_init_config(const char* config_file, topmodel_model* model);
 
-
 #if defined(__cplusplus)
 }
 #endif
