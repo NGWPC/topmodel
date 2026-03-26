@@ -6,7 +6,7 @@
 
 /* BMI Adaption: Max i/o file name length changed from 30 to 256 */
 #define MAX_FILENAME_LENGTH   256
-#define OUTPUT_VAR_NAME_COUNT 14
+#define OUTPUT_VAR_NAME_COUNT 15
 #define INPUT_VAR_NAME_COUNT  2
 #define PARAM_VAR_NAME_COUNT  8
 
@@ -27,10 +27,12 @@ static const char *output_var_names[OUTPUT_VAR_NAME_COUNT] = {
     "land_surface_water__domain_time_integral_of_runoff_volume_flux", // sumq
     "soil_water__domain_root-zone_volume_deficit", // sumrz
     "soil_water__domain_unsaturated-zone_volume", // sumuz
-    "land_surface_water__water_balance_volume" // bal
+    "land_surface_water__water_balance_volume", // bal
+    "nwm_pounded_depth" // sum of Q[1..num_time_delay_histo_ords]
 };
 
 static const char *output_var_types[OUTPUT_VAR_NAME_COUNT] = {
+    "double",
     "double",
     "double",
     "double",
@@ -48,7 +50,7 @@ static const char *output_var_types[OUTPUT_VAR_NAME_COUNT] = {
 };
 
 static const int output_var_item_count[OUTPUT_VAR_NAME_COUNT] =
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 static const char *output_var_units[OUTPUT_VAR_NAME_COUNT] = {
     "m h-1",
@@ -64,13 +66,15 @@ static const char *output_var_units[OUTPUT_VAR_NAME_COUNT] = {
     "m",
     "m",
     "m",
+    "m",
     "m"
 };
 
 static const int output_var_grids[OUTPUT_VAR_NAME_COUNT] =
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static const char *output_var_locations[OUTPUT_VAR_NAME_COUNT] = {
+    "node",
     "node",
     "node",
     "node",
@@ -501,7 +505,8 @@ static int Update(Bmi *self) {
         &topmodel->qb,
         &topmodel->qof,
         &topmodel->p,
-        &topmodel->ep
+        &topmodel->ep,
+	&topmodel->ponded_depth
     );
 
     return BMI_SUCCESS;
@@ -909,6 +914,14 @@ static int Get_value_ptr(Bmi *self, const char *name, void **dest) {
         topmodel_model *topmodel;
         topmodel = (topmodel_model *)self->data;
         *dest    = (void *)&topmodel->bal;
+        return BMI_SUCCESS;
+    }
+
+    // ponded depth
+    if (strcmp(name, "nwm_ponded_depth") == 0) {
+        topmodel_model *topmodel;
+        topmodel = (topmodel_model *)self->data;
+        *dest    = (void *)&topmodel->ponded_depth;
         return BMI_SUCCESS;
     }
     // szm (parameter)

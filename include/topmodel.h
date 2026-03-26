@@ -68,7 +68,7 @@ extern void topmod(FILE *output_fptr, int nstep, int num_topodex_values,
                 const double *time_delay_histogram,
                 double *sbar,int num_delay, int current_time_step, int stand_alone,
                 double *sump, double *sumae, double *sumq, double *sumrz, double *sumuz,
-                double *quz, double *qb, double *qof, double *p, double *ep);
+                double *quz, double *qb, double *qof, double *p, double *ep, double *ponded_depth);
 
 extern int tread(FILE *subcat_fptr,FILE *output_fptr,char *subcat,
                 int *num_topodex_values,int *num_channels,double *area,
@@ -184,6 +184,7 @@ struct TopModel_Struct{
   double qof; /* flow from saturated area and infiltration excess flow*/
   double p;   /* adjusted rain*/
   double ep;  /* adjusted potential evaporation*/
+  double ponded_depth; /* queued delayed flow from hydrograph ordinates */
 
   /************** Framework vars **************/ 
   int stand_alone;

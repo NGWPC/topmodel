@@ -147,7 +147,8 @@ extern void topmod(
     double *qb,
     double *qof,
     double *p,
-    double *ep
+    double *ep,
+    double *ponded_depth
 ) {
     /*****************************************************************
 
@@ -355,6 +356,13 @@ extern void topmod(
             break;
         // Accumulate previous time dealyed flow with current
         Q[in] += (*Qout) * time_delay_histogram[ir];
+    }
+
+    /* Ponded depth: sum delayed-flow components currently stored in the
+     * hydrograph ordinates portion of the routing array. */
+    *ponded_depth = 0.0;
+    for (ir = 1; ir <= num_time_delay_histo_ords; ir++) {
+        *ponded_depth += Q[ir];
     }
 
     // Add current time flow to mass balance variable

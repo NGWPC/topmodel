@@ -54,6 +54,7 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
     ar & model->qof; //
     ar & model->p; // reassigned each update; used in calc after assignment
     ar & model->ep; // reassigned each update; used in calc after assignment
+    ar & model->ponded_depth; // reassigned each update
     ar & model->sbar; // used then reassigned
 
     // array data that updates in update; counts set in config
