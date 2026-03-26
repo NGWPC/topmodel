@@ -28,7 +28,7 @@ static const char *output_var_names[OUTPUT_VAR_NAME_COUNT] = {
     "soil_water__domain_root-zone_volume_deficit", // sumrz
     "soil_water__domain_unsaturated-zone_volume", // sumuz
     "land_surface_water__water_balance_volume", // bal
-    "nwm_pounded_depth" // sum of Q[1..num_time_delay_histo_ords]
+    "nwm_ponded_depth" // sum of Q[1..num_time_delay_histo_ords]
 };
 
 static const char *output_var_types[OUTPUT_VAR_NAME_COUNT] = {
