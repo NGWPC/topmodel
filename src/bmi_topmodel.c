@@ -506,7 +506,7 @@ static int Update(Bmi *self) {
         &topmodel->qof,
         &topmodel->p,
         &topmodel->ep,
-	&topmodel->ponded_depth
+        &topmodel->ponded_depth
     );
 
     return BMI_SUCCESS;
