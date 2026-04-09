@@ -184,7 +184,7 @@ struct TopModel_Struct{
   double qof; /* flow from saturated area and infiltration excess flow*/
   double p;   /* adjusted rain*/
   double ep;  /* adjusted potential evaporation*/
-  double ponded_depth; /* queued delayed flow from hydrograph ordinates */
+  double ponded_depth; /* queued delayed runoff depth from hydrograph ordinates */
 
   /************** Framework vars **************/ 
   int stand_alone;
@@ -208,5 +208,6 @@ struct TopModel_Struct{
 typedef struct TopModel_Struct topmodel_model;
 extern void alloc_topmodel(topmodel_model *model);
 extern void free_topmodel(topmodel_model *model);
+
 
 #endif
