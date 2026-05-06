@@ -185,6 +185,7 @@ struct TopModel_Struct{
   double p;   /* adjusted rain*/
   double ep;  /* adjusted potential evaporation*/
   double ponded_depth; /* queued delayed runoff depth from hydrograph ordinates */
+  double qb_m3_per_s;
 
   /************** Framework vars **************/ 
   int stand_alone;
