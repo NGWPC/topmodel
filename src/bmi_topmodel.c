@@ -6,7 +6,7 @@
 
 /* BMI Adaption: Max i/o file name length changed from 30 to 256 */
 #define MAX_FILENAME_LENGTH   256
-#define OUTPUT_VAR_NAME_COUNT 15
+#define OUTPUT_VAR_NAME_COUNT 16
 #define INPUT_VAR_NAME_COUNT  2
 #define PARAM_VAR_NAME_COUNT  8
 
@@ -28,10 +28,12 @@ static const char *output_var_names[OUTPUT_VAR_NAME_COUNT] = {
     "soil_water__domain_root-zone_volume_deficit", // sumrz
     "soil_water__domain_unsaturated-zone_volume", // sumuz
     "land_surface_water__water_balance_volume", // bal
-    "nwm_ponded_depth" // sum of Q[1..num_time_delay_histo_ords]
+    "nwm_ponded_depth", // sum of Q[1..num_time_delay_histo_ords]
+    "land_surface_water__baseflow_volume_flux_m3_per_s"
 };
 
 static const char *output_var_types[OUTPUT_VAR_NAME_COUNT] = {
+    "double",
     "double",
     "double",
     "double",
@@ -50,7 +52,7 @@ static const char *output_var_types[OUTPUT_VAR_NAME_COUNT] = {
 };
 
 static const int output_var_item_count[OUTPUT_VAR_NAME_COUNT] =
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 static const char *output_var_units[OUTPUT_VAR_NAME_COUNT] = {
     "m h-1",
@@ -67,13 +69,15 @@ static const char *output_var_units[OUTPUT_VAR_NAME_COUNT] = {
     "m",
     "m",
     "m",
-    "m"
+    "m",
+    "m3 s-1"
 };
 
 static const int output_var_grids[OUTPUT_VAR_NAME_COUNT] =
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static const char *output_var_locations[OUTPUT_VAR_NAME_COUNT] = {
+    "node",
     "node",
     "node",
     "node",
@@ -433,6 +437,7 @@ static int Initialize(Bmi *self, const char *cfg_file) {
     topmodel->sump              = 0.0;
     topmodel->sumae             = 0.0;
     topmodel->sumq              = 0.0;
+    topmodel->qb_m3_per_s       = 0.0;
 
     topmodel->max_contrib_area = 0.0;
 
@@ -857,6 +862,27 @@ static int Get_value_ptr(Bmi *self, const char *name, void **dest) {
         topmodel_model *topmodel;
         topmodel = (topmodel_model *)self->data;
         *dest    = (void *)&topmodel->qb;
+        return BMI_SUCCESS;
+    }
+    // qb in m3/s
+    if (strcmp(name, "land_surface_water__baseflow_volume_flux_m3_per_s") == 0) {
+        topmodel_model *topmodel;
+        topmodel = (topmodel_model *)self->data;
+
+        if (topmodel->area > 0.0) {
+            /* TOPMODEL native qb is baseflow depth rate [m h-1].
+             * NWM expects volume flow rate [m3 s-1].
+             *
+             * Conversion:
+             *   m h-1 * m2 / 3600 s h-1 = m3 s-1
+             */
+            topmodel->qb_m3_per_s = topmodel->qb * topmodel->area / 3600.0;
+        }
+        else {
+            topmodel->qb_m3_per_s = 0.0;
+        }
+
+        *dest = (void *)&topmodel->qb_m3_per_s;
         return BMI_SUCCESS;
     }
     // sbar
