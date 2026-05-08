@@ -1,21 +1,7 @@
-#ifndef LOGGER_H
-#define LOGGER_H
-
-#include <stdarg.h> // for variable args: va_list
-#include <stdbool.h>
-
-typedef enum {      
-    NONE = 0,
-    DEBUG = 1,
-    INFO = 2,
-    WARNING = 3,
-    SEVERE = 4,
-    FATAL = 5,
-} LogLevel;
-
-// Public Methods
-LogLevel GetLogLevel(void);
-bool IsLoggingEnabled(void);
-void Log(LogLevel messageLevel, const char* message, ...);
-
-#endif // LOGGER_H
+#ifndef TOPMODEL_LOGGER_H
+#define TOPMODEL_LOGGER_H
+#include "ewts/module_constants.h"
+#define EWTS_ID EWTS_ID_TOPMODEL
+#include "ewts/logger.h"
+#include "ewts/log_levels.h"
+#endif /* TOPMODEL_LOGGER_H */

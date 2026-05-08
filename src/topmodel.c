@@ -119,13 +119,13 @@ extern void topmod(
     double *stor_unsat_zone,
     double *deficit_root_zone,
     double *deficit_local,
-    double *pe,
-    double *rain,
+    const double *pe,
+    const double *rain,
     double xk0,
     double hf,
-    double *dist_area_lnaotb,
+    const double *dist_area_lnaotb,
     double tl,
-    double *lnaotb,
+    const double *lnaotb,
     double td,
     double srmax,
     double *contrib_area,
@@ -133,9 +133,7 @@ extern void topmod(
     double *Qout,
     int num_time_delay_histo_ords,
     double *Q,
-    double *time_delay_histogram,
-    char *subcat,
-    double *bal,
+    const double *time_delay_histogram,
     double *sbar,
     int num_delay,
     int current_time_step,
@@ -149,7 +147,8 @@ extern void topmod(
     double *qb,
     double *qof,
     double *p,
-    double *ep
+    double *ep,
+    double *ponded_depth
 ) {
     /*****************************************************************
 
@@ -357,6 +356,27 @@ extern void topmod(
             break;
         // Accumulate previous time dealyed flow with current
         Q[in] += (*Qout) * time_delay_histogram[ir];
+    }
+
+    /* Ponded depth: sum delayed-flow components stored in the hydrograph-
+     * ordinates portion of the routing array, excluding the pure channel-delay
+     * slots. */
+    *ponded_depth = 0.0;
+
+    if (stand_alone == TRUE) {
+        int q_start = it + num_delay;
+        int q_end   = q_start + num_time_delay_histo_ords - 1;
+
+        for (ir = q_start; ir <= q_end; ir++) {
+            *ponded_depth += Q[ir];
+        }
+    } else {
+        int q_start = num_delay + 1;
+        int q_end   = num_delay + num_time_delay_histo_ords;
+
+        for (ir = q_start; ir <= q_end; ir++) {
+            *ponded_depth += Q[ir];
+        }
     }
 
     // Add current time flow to mass balance variable
@@ -689,8 +709,8 @@ extern int tread(
 extern void convert_dist_to_histords(
     const double *const dist_from_outlet,
     const int num_channels,
-    const double *const chv,
-    const double *const rv,
+    const double chv,
+    const double rv,
     const double dt,
     double *const tch
 ) {
@@ -705,8 +725,8 @@ extern void convert_dist_to_histords(
     double chvdt, rvdt;
     int j;
 
-    chvdt = *chv * dt; // distance water travels in one timestep within channel
-    rvdt  = *rv * dt; // distance water travels as overland flow in one timestep
+    chvdt = chv * dt; // distance water travels in one timestep within channel
+    rvdt  = rv * dt; // distance water travels as overland flow in one timestep
 
     tch[1] = dist_from_outlet[1] / chvdt;
     for (j = 2; j <= num_channels; j++) {
@@ -741,8 +761,8 @@ extern void convert_dist_to_histords(
 extern void calc_time_delay_histogram(
     int num_channels,
     double area,
-    double *tch,
-    double *cum_dist_area_with_dist,
+    const double *tch,
+    const double *cum_dist_area_with_dist,
     int *num_time_delay_histo_ords,
     int *num_delay,
     double **time_delay_histogram
@@ -840,6 +860,8 @@ extern void calc_time_delay_histogram(
 
     }
 
+
+
     return;
 }
 
@@ -861,10 +883,10 @@ extern void calc_time_delay_histogram(
  */
 extern void init_discharge_array(
     int stand_alone,
-    int *num_delay,
-    double *Q0,
+    int num_delay,
+    double Q0,
     double area,
-    int *num_time_delay_histo_ords,
+    int num_time_delay_histo_ords,
     double **time_delay_histogram,
     double **Q
 ) {
@@ -876,7 +898,7 @@ extern void init_discharge_array(
             *Q = NULL;
         }
         //*Q = calloc(*num_delay + *num_time_delay_histo_ords + 1, sizeof(double));
-        d_alloc(Q, *num_delay + *num_time_delay_histo_ords);
+        d_alloc(Q, num_delay + num_time_delay_histo_ords);
     }
 
     // declare local variables
@@ -885,14 +907,14 @@ extern void init_discharge_array(
 
     sum = 0.0;
 
-    for (i = 1; i <= (*num_delay); i++) {
-        (*Q)[i] += (*Q0) * area;
+    for (i = 1; i <= (num_delay); i++) {
+        (*Q)[i] += Q0 * area;
     }
 
-    for (i = 1; i <= (*num_time_delay_histo_ords); i++) {
+    for (i = 1; i <= num_time_delay_histo_ords; i++) {
         sum += (*time_delay_histogram)[i];
-        in = (*num_delay) + i;
-        (*Q)[in] += (*Q0) * (area - sum);
+        in = num_delay + i;
+        (*Q)[in] += Q0 * (area - sum);
     };
 
     return;
@@ -931,10 +953,10 @@ extern void init_discharge_array(
 extern void init_water_balance(
     int num_topodex_values,
     double dt,
-    double *sr0,
-    double *szm,
-    double *Q0,
-    double *t0,
+    double sr0,
+    double szm,
+    double Q0,
+    double t0,
     double tl,
     double **stor_unsat_zone,
     double *szq,
@@ -960,20 +982,20 @@ extern void init_water_balance(
     // document the assumption and the requirement for caller to size these arrays to
     // num_topodex_values
 
-    t0dt = (*t0) + log(dt); /* was ALOG - specific log function in fortran*/
+    t0dt = t0 + log(dt); /* was ALOG - specific log function in fortran*/
 
     /*  Calculate SZQ parameter */
     (*szq) = exp(t0dt - tl);
 
     for (ia = 1; ia <= num_topodex_values; ia++) {
         (*stor_unsat_zone)[ia]   = 0.0;
-        (*deficit_root_zone)[ia] = (*sr0);
+        (*deficit_root_zone)[ia] = sr0;
     }
 
-    (*sbar) = -(*szm) * log((*Q0) / (*szq));
+    (*sbar) = (-szm) * log(Q0 / (*szq));
 
     //  Initialise water balance.  BAL is positive for storage
-    (*bal) = -(*sbar) - (*sr0);
+    (*bal) = -(*sbar) - sr0;
 
     return;
 }
@@ -1072,7 +1094,7 @@ extern int init(
     double *cum_dist_area_with_dist,
     double dt,
     double tl,
-    double *dist_from_outlet,
+    const double *dist_from_outlet,
     int *num_time_delay_histo_ords,
     int *num_delay,
     double *szm,
@@ -1149,7 +1171,7 @@ extern int init(
 
     // NJF num_channels is the value provided (SHOULD COME FROM TREAD)
     // Convert distance/area form to time delay histogram ordinates
-    convert_dist_to_histords(dist_from_outlet, num_channels, chv, rv, dt, tch);
+    convert_dist_to_histords(dist_from_outlet, num_channels, *chv, *rv, dt, tch);
 
     // calculate the time_delay_histogram
     calc_time_delay_histogram(
@@ -1165,10 +1187,10 @@ extern int init(
     // Reinitialise discharge array
     init_discharge_array(
         stand_alone,
-        num_delay,
-        Q0,
+        *num_delay,
+        *Q0,
         area,
-        num_time_delay_histo_ords,
+        *num_time_delay_histo_ords,
         time_delay_histogram,
         Q
     );
@@ -1177,10 +1199,10 @@ extern int init(
     init_water_balance(
         num_topodex_values,
         dt,
-        sr0,
-        szm,
-        Q0,
-        t0,
+        *sr0,
+        *szm,
+        *Q0,
+        *t0,
         tl,
         stor_unsat_zone,
         szq,

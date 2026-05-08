@@ -6,7 +6,7 @@
 
 /* BMI Adaption: Max i/o file name length changed from 30 to 256 */
 #define MAX_FILENAME_LENGTH   256
-#define OUTPUT_VAR_NAME_COUNT 14
+#define OUTPUT_VAR_NAME_COUNT 16
 #define INPUT_VAR_NAME_COUNT  2
 #define PARAM_VAR_NAME_COUNT  8
 
@@ -27,10 +27,14 @@ static const char *output_var_names[OUTPUT_VAR_NAME_COUNT] = {
     "land_surface_water__domain_time_integral_of_runoff_volume_flux", // sumq
     "soil_water__domain_root-zone_volume_deficit", // sumrz
     "soil_water__domain_unsaturated-zone_volume", // sumuz
-    "land_surface_water__water_balance_volume" // bal
+    "land_surface_water__water_balance_volume", // bal
+    "nwm_ponded_depth", // sum of Q[1..num_time_delay_histo_ords]
+    "land_surface_water__baseflow_volume_flux_m3_per_s"
 };
 
 static const char *output_var_types[OUTPUT_VAR_NAME_COUNT] = {
+    "double",
+    "double",
     "double",
     "double",
     "double",
@@ -48,7 +52,7 @@ static const char *output_var_types[OUTPUT_VAR_NAME_COUNT] = {
 };
 
 static const int output_var_item_count[OUTPUT_VAR_NAME_COUNT] =
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 static const char *output_var_units[OUTPUT_VAR_NAME_COUNT] = {
     "m h-1",
@@ -64,13 +68,17 @@ static const char *output_var_units[OUTPUT_VAR_NAME_COUNT] = {
     "m",
     "m",
     "m",
-    "m"
+    "m",
+    "m",
+    "m3 s-1"
 };
 
 static const int output_var_grids[OUTPUT_VAR_NAME_COUNT] =
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static const char *output_var_locations[OUTPUT_VAR_NAME_COUNT] = {
+    "node",
+    "node",
     "node",
     "node",
     "node",
@@ -412,6 +420,13 @@ static int Initialize(Bmi *self, const char *cfg_file) {
     topmodel_model *topmodel;
     topmodel = (topmodel_model *)self->data;
 
+    // Initialize the Error, Warning and Trapping System
+#ifdef EWTS_HAVE_NGEN_BRIDGE    
+    EwtsInit(EWTS_ID_TOPMODEL, true);
+#else
+    EwtsInit(EWTS_ID_TOPMODEL, false);
+#endif    
+    
     // Read and setup data from file
     int ret = init_config(cfg_file, topmodel);
     if (ret != BMI_SUCCESS)
@@ -422,6 +437,7 @@ static int Initialize(Bmi *self, const char *cfg_file) {
     topmodel->sump              = 0.0;
     topmodel->sumae             = 0.0;
     topmodel->sumq              = 0.0;
+    topmodel->qb_m3_per_s       = 0.0;
 
     topmodel->max_contrib_area = 0.0;
 
@@ -481,8 +497,6 @@ static int Update(Bmi *self) {
         topmodel->num_time_delay_histo_ords,
         topmodel->Q,
         topmodel->time_delay_histogram,
-        topmodel->subcat,
-        &topmodel->bal,
         &topmodel->sbar,
         topmodel->num_delay,
         topmodel->current_time_step,
@@ -496,7 +510,8 @@ static int Update(Bmi *self) {
         &topmodel->qb,
         &topmodel->qof,
         &topmodel->p,
-        &topmodel->ep
+        &topmodel->ep,
+        &topmodel->ponded_depth
     );
 
     return BMI_SUCCESS;
@@ -652,6 +667,9 @@ static int Get_var_type(Bmi *self, const char *name, char *type) {
     } else if (strcmp(name, "serialization_free") == 0) {
         strncpy(type, "int", BMI_MAX_TYPE_NAME);
         return BMI_SUCCESS;
+    } else if (strcmp(name, "reset_time") == 0) {
+        strncpy(type, "double", BMI_MAX_TYPE_NAME);
+        return BMI_SUCCESS;
     }
     // If we get here, it means the variable name wasn't recognized
     type[0] = '\0';
@@ -776,7 +794,10 @@ static int Get_var_nbytes(Bmi *self, const char *name, int *nbytes) {
     }
     // special cases for save state
     if (item_count < 1) {
-        if (strcmp(name, "serialization_create") == 0 || strcmp(name, "serialization_size") == 0 || strcmp(name, "serialization_free") == 0) {
+        if (strcmp(name, "serialization_create") == 0
+            || strcmp(name, "serialization_size") == 0
+            || strcmp(name, "serialization_free") == 0
+            || strcmp(name, "reset_time") == 0) {
             item_count = 1;
         } else if (strcmp(name, "serialization_state") == 0) {
             topmodel_model* model = (topmodel_model*)self->data;
@@ -810,8 +831,8 @@ static int Get_value_ptr(Bmi *self, const char *name, void **dest) {
     if (strcmp(name, "atmosphere_water__liquid_equivalent_precipitation_rate_out") == 0) {
         topmodel_model *topmodel;
         topmodel = (topmodel_model *)self->data;
-        *dest    = (void *)&topmodel->p;
-        //*dest = (void*)&topmodel->rain[1]; Note: these are the same ==, either would work
+        //*dest    = (void *)&topmodel->p;//Note: these are the same ==, either would work
+        *dest = (void*)&topmodel->rain[1]; 
         return BMI_SUCCESS;
         // ep
     }
@@ -841,6 +862,27 @@ static int Get_value_ptr(Bmi *self, const char *name, void **dest) {
         topmodel_model *topmodel;
         topmodel = (topmodel_model *)self->data;
         *dest    = (void *)&topmodel->qb;
+        return BMI_SUCCESS;
+    }
+    // qb in m3/s
+    if (strcmp(name, "land_surface_water__baseflow_volume_flux_m3_per_s") == 0) {
+        topmodel_model *topmodel;
+        topmodel = (topmodel_model *)self->data;
+
+        if (topmodel->area > 0.0) {
+            /* TOPMODEL native qb is baseflow depth rate [m h-1].
+             * NWM expects volume flow rate [m3 s-1].
+             *
+             * Conversion:
+             *   m h-1 * m2 / 3600 s h-1 = m3 s-1
+             */
+            topmodel->qb_m3_per_s = topmodel->qb * topmodel->area / 3600.0;
+        }
+        else {
+            topmodel->qb_m3_per_s = 0.0;
+        }
+
+        *dest = (void *)&topmodel->qb_m3_per_s;
         return BMI_SUCCESS;
     }
     // sbar
@@ -898,6 +940,14 @@ static int Get_value_ptr(Bmi *self, const char *name, void **dest) {
         topmodel_model *topmodel;
         topmodel = (topmodel_model *)self->data;
         *dest    = (void *)&topmodel->bal;
+        return BMI_SUCCESS;
+    }
+
+    // ponded depth
+    if (strcmp(name, "nwm_ponded_depth") == 0) {
+        topmodel_model *topmodel;
+        topmodel = (topmodel_model *)self->data;
+        *dest    = (void *)&topmodel->ponded_depth;
         return BMI_SUCCESS;
     }
     // szm (parameter)
@@ -1063,6 +1113,11 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         } else {
             return BMI_FAILURE;
         }
+    } else if (strcmp(name, "reset_time") == 0) {
+        topmodel_model* model = (topmodel_model *)self->data;
+        // current_time_step is mainly used for indexing into config data, so should be safe to reset and nothing else
+        model->current_time_step = 0;
+        return BMI_SUCCESS;
     }
 
     if (self->get_value_ptr(self, name, &dest) == BMI_FAILURE)
@@ -1168,8 +1223,8 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         convert_dist_to_histords(
             topmodel->dist_from_outlet,
             topmodel->num_channels,
-            &topmodel->chv,
-            &topmodel->rv,
+            topmodel->chv,
+            topmodel->rv,
             topmodel->dt,
             tch
         );
@@ -1188,10 +1243,10 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         // Reinitialise discharge array
         init_discharge_array(
             topmodel->stand_alone,
-            &topmodel->num_delay,
-            &topmodel->Q0,
+            topmodel->num_delay,
+            topmodel->Q0,
             topmodel->area,
-            &topmodel->num_time_delay_histo_ords,
+            topmodel->num_time_delay_histo_ords,
             &topmodel->time_delay_histogram,
             &topmodel->Q
         );
@@ -1211,10 +1266,10 @@ static int Set_value(Bmi *self, const char *name, void *array) {
         init_water_balance(
             topmodel->num_topodex_values,
             topmodel->dt,
-            &topmodel->sr0,
-            &topmodel->szm,
-            &topmodel->Q0,
-            &topmodel->t0,
+            topmodel->sr0,
+            topmodel->szm,
+            topmodel->Q0,
+            topmodel->t0,
             topmodel->tl,
             &topmodel->stor_unsat_zone,
             &topmodel->szq,
