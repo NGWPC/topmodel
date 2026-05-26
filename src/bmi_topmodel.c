@@ -420,11 +420,12 @@ static int Initialize(Bmi *self, const char *cfg_file) {
     topmodel_model *topmodel;
     topmodel = (topmodel_model *)self->data;
 
-    // Initialize the Error, Warning and Trapping System
-#ifdef USE_EWTS    
-    EwtsInit(EWTS_ID_TOPMODEL, true);
+#ifdef TOPMODEL_USE_EWTS
+    // Initialize the Error and Warning Trapping System
+    #pragma message("topmodel.bmi_topmodel.Initialize: TOPMODEL_USE_EWTS ON")
+    EwtsInit(TOPMODEL_MODULE_ID, true);
 #else
-    EwtsInit(EWTS_ID_TOPMODEL, false);
+    #pragma message("topmodel.bmi_topmodel.Initialize: TOPMODEL_USE_EWTS OFF")
 #endif    
     
     // Read and setup data from file
