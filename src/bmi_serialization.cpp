@@ -100,6 +100,12 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
         model->time_delay_histogram, model->num_time_delay_histo_ords + 1
     );
     ar & boost::serialization::make_array(model->Q, num_Q);
+
+    // BMI output vars
+    ar & model->rain[1];
+    ar & model->Q[1];
+    ar & model->bal;
+    ar & model->area;
 }
 
 
