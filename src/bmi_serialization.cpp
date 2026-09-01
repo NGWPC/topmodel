@@ -108,6 +108,9 @@ void TopmodelSerializer::serialize(Archive& ar, const unsigned int version) {
     ar & model->area;
 }
 
+namespace {
+    using HeaderType = uint64_t;
+}
 
 extern "C" {
 
@@ -122,10 +125,12 @@ extern "C" {
  */
 const int serialize_topmodel(Bmi* bmi) {
     TopmodelSerializer serializer(bmi);
-    vecbuf<char> stream;
+    vecbuf data;
+    OStreamType stream(data);
     boost::archive::binary_oarchive archive(stream);
     try {
         archive << serializer;
+        stream.flush();
     } catch (const std::exception& e) {
         Log(LogLevel::SEVERE, "Serializing Topmodel encountered an error: %s", e.what());
         return BMI_FAILURE;
@@ -137,8 +142,8 @@ const int serialize_topmodel(Bmi* bmi) {
         free(model->serialized);
     }
     // set size and allocate memory
-    uint64_t serialized_size = stream.size();
-    model->serialized_length = serialized_size + sizeof(uint64_t);
+    HeaderType serialized_size = data.size();
+    model->serialized_length = serialized_size + sizeof(HeaderType);
     model->serialized = (char*)malloc(model->serialized_length);
     // make sure memory could be allocated
     if (model->serialized == NULL) {
@@ -146,8 +151,8 @@ const int serialize_topmodel(Bmi* bmi) {
         return BMI_FAILURE;
     }
     // copy stream data to new allocation
-    memcpy(model->serialized, &serialized_size, sizeof(uint64_t));
-    memcpy(model->serialized + sizeof(uint64_t), stream.data(), serialized_size);
+    memcpy(model->serialized, &serialized_size, sizeof(HeaderType));
+    memcpy(model->serialized + sizeof(HeaderType), data.data(), serialized_size);
     return BMI_SUCCESS;
 }
 
@@ -161,10 +166,10 @@ const int serialize_topmodel(Bmi* bmi) {
 const int deserialize_topmodel(Bmi* bmi, char* buffer) {
     TopmodelSerializer serializer(bmi);
     // copy size of data out of header
-    uint64_t size;
-    memcpy(&size, buffer, sizeof(uint64_t));
+    HeaderType size;
+    memcpy(&size, buffer, sizeof(HeaderType));
     // create stream from data after header
-    membuf stream(buffer + sizeof(uint64_t), size);
+    membuf stream(buffer + sizeof(HeaderType), size);
     boost::archive::binary_iarchive archive(stream);
     try {
         archive >> serializer;
